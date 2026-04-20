@@ -111,7 +111,7 @@ def download_full() -> Path:
     return dest
 
 
-def download_deltas(delta_type: str = "LastDay") -> list[Path]:
+def download_deltas(delta_type: str = "LastWeek") -> list[Path]:
     """
     Download the latest delta file of the given type, unless already applied.
 
@@ -161,8 +161,8 @@ if __name__ == "__main__":
         help="'full' for initial load, 'delta' for incremental update",
     )
     parser.add_argument(
-        "--delta-type", default="LastDay", choices=DELTA_TYPES,
-        help="Which delta window to download (default: LastDay)",
+        "--delta-type", default="LastWeek", choices=DELTA_TYPES,
+        help="Which delta window to download (default: LastWeek)",
     )
     args = parser.parse_args()
 
