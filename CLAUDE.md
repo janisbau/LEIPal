@@ -93,6 +93,13 @@ LEIPal/
 - 8,537 records have NULL entity_status
 - Top jurisdictions: IN, IT, DE, GB, ES, NL, FR, US-DE, SE, CN
 
+### Phase 1b: Delta Pipeline ✅ COMPLETE
+- [x] Delta files on separate domain: `https://goldencopy.gleif.org/api/v2/golden-copies/publishes/lei2/latest.xml?delta=LastDay`
+- [x] Follows 302 redirect automatically (httpx `follow_redirects=True`)
+- [x] Filename derived from resolved URL (includes date+time) for unique watermark keys
+- [x] Tested: 7,248 records upserted in ~2 seconds
+- [x] Delta types: `IntraDay`, `LastDay` (recommended), `LastWeek`, `LastMonth`
+
 ### Phase 2: Frontend Dashboard (not started)
 - Next.js app in `frontend/`
 - Charts for total LEIs, growth over time, breakdown by jurisdiction/LOU
