@@ -1,18 +1,25 @@
 # LEIPal — Project Memory
 
 ## What This Is
-A web platform for LEI (Legal Entity Identifier) analytics aimed at two audiences:
-1. **General public** — market stats, growth trends, jurisdiction breakdowns
-2. **The owner (an LOU)** — competitor analysis against other LOUs
+A **neutral commercial market intelligence platform** for the LEI ecosystem — think Bloomberg Terminal for LEI data. Not tied to any single LOU's perspective.
 
-Target features (from the original brief):
-- Daily LEI statistics & growth trends with graphs
-- LOU statistics for competitor analysis
-- Market predictions
-- Company profiles
-- Public info pages
+**Business model**: SaaS product. Some data free/public, deep analytics behind a paywall. Revenue from subscriptions, not internal use.
 
-The user **is an LOU themselves** — LOU-level competitor analysis is a high-priority feature.
+**Target audiences:**
+- Other LOUs wanting market intelligence
+- Compliance teams at financial institutions
+- Regulators and researchers
+- Anyone needing LEI lookup/verification
+
+**Target features:**
+- Overview dashboard — total LEIs, active/inactive, growth trends, top jurisdictions
+- LOU Explorer — neutral market intelligence on all 40 LOUs (market share, growth, pricing)
+- Company Search — search/lookup any of 3.16M LEIs by name or code
+- LEI Detail — full record view, entity info, managing LOU, registration history
+- Jurisdictions — LEI density by country, growth corridors
+- Future: pricing scraper (LOU websites), DQ scores (GLEIF), historical snapshots, auth/paywall
+
+**The owner is an LOU themselves but LEIPal is built as a neutral product — no single LOU's perspective is favoured.**
 
 ---
 
@@ -144,17 +151,38 @@ LEIPal/
 ### 🔜 Phase 2: Frontend Dashboard — NEXT
 Stack: Next.js (React) in `frontend/` directory
 
-**Planned pages/views:**
-1. **Overview dashboard** — total LEIs, active/inactive split, growth chart over time, top jurisdictions
-2. **LOU explorer** — table of all 40 LOUs with key stats (total LEIs managed, active %, country)
-3. **LOU detail** — competitor deep-dive: registrations over time, jurisdiction breakdown, renewal rate
-4. **Jurisdiction view** — drill into a country/region
+**Design**: Dark terminal aesthetic (navy + teal accents), designed in Claude Design.
+Reference screenshots saved in project memory (4 screens: Home, Overview, LOU Explorer, LOU Detail).
 
-**API endpoints needed before/during frontend build:**
-- `GET /api/v1/lous` — list all LOUs with stats
-- `GET /api/v1/lous/{lei}` — single LOU detail
-- `GET /api/v1/stats/growth` — LEI counts over time (by month/year)
-- `GET /api/v1/stats/jurisdictions` — full jurisdiction breakdown
+**Colour palette:**
+- Background: #0D1117 (dark navy)
+- Card: #161B22
+- Border: #21262D
+- Accent: #00D4AA (teal/green)
+- Text primary: #FFFFFF
+- Text muted: #8B949E
+
+**Build order:**
+1. ✅ → Next.js setup + shared layout (sidebar, nav, dark theme)
+2. ✅ → Overview dashboard (stat cards + top jurisdictions — growth chart placeholder)
+3. ✅ → Company Search + LEI detail page
+4. ✅ → LOU Explorer (active LEIs + market share — pricing/DQ placeholders)
+
+**API endpoints needed:**
+- `GET /api/v1/lous` — all LOUs with active LEI count + market share % (buildable now)
+- `GET /api/v1/lous/{lei}` — single LOU detail (buildable now)
+- `GET /api/v1/stats/jurisdictions` — full jurisdiction breakdown (buildable now)
+- `GET /api/v1/search?q=` — search lei_records by name or LEI code (buildable now)
+- `GET /api/v1/lei/{lei}` — single LEI record detail (buildable now)
+- `GET /api/v1/stats/growth` — LEI counts over time ❌ needs historical snapshots (future)
+
+**LOU Explorer data availability:**
+| Column | Status |
+|---|---|
+| Active LEIs, Market share | ✅ Buildable now |
+| MoM / YoY growth | ❌ Need historical snapshots |
+| Issue/Renewal pricing | ❌ Need to scrape LOU websites |
+| DQ score | ❌ GLEIF publishes separately |
 
 ### Phase 3: Advanced Features (future)
 - Level 2 data (ownership chains)
@@ -165,11 +193,11 @@ Stack: Next.js (React) in `frontend/` directory
 
 ---
 
-## Open Questions (to resolve early in Phase 2)
-1. **Which LOU are you?** — provide your LEI so we can build a "you vs. competitors" view
-2. **What competitor metrics matter most?** — new registrations/month, market share by jurisdiction, renewal rate, lapsed LEI %?
-3. **Public or private site?** — affects auth, SEO, hosting decisions
-4. **Branding** — any design preferences for the frontend?
+## Open Questions
+1. **Auth/paywall** — which features are free vs paid? When do we add login?
+2. **Historical snapshots** — to show growth charts, we need to start capturing daily/weekly DB snapshots. Set this up early so data accumulates.
+3. **LOU pricing scraper** — which LOU websites to scrape first?
+4. **Domain/branding** — leipal.com or similar? Any logo?
 
 ---
 
