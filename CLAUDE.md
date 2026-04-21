@@ -27,7 +27,7 @@ A **neutral commercial market intelligence platform** for the LEI ecosystem — 
 | Layer | Choice | Notes |
 |---|---|---|
 | Backend | Python 3.12 + FastAPI | Running on port 8000 |
-| Frontend | Next.js (React) | Phase 2 — not started yet |
+| Frontend | Next.js 16 (React) | Running on port 3000 (`npm run dev`) |
 | Database | PostgreSQL 16 (Docker) | Port 5432 locally |
 | Data processing | Polars | Fast streaming XML parser |
 | DB migrations | Alembic | |
@@ -120,22 +120,44 @@ LEIPal/
 ├── docker-compose.yml               ← PostgreSQL 16 + pgAdmin
 ├── .env.example                     ← copy to .env before first run
 ├── .gitignore                       ← excludes data/, .env, .claude/settings.local.json
-└── backend/
-    ├── pyproject.toml               ← Poetry deps (FastAPI, Polars, psycopg3, Alembic, httpx, tqdm)
-    ├── alembic.ini
-    ├── alembic/
-    │   └── versions/0001_initial_schema.py
-    └── app/
-        ├── main.py                  ← FastAPI app, mounts routers
-        ├── config.py                ← Settings loaded from .env
-        ├── database.py              ← SQLAlchemy engine + SessionLocal
-        ├── models.py                ← ORM: LeiRecord, Lou, PipelineWatermark
-        ├── api/v1/
-        │   └── stats.py             ← GET /api/v1/stats/summary
-        └── pipeline/
-            ├── download.py          ← Downloads full + delta ZIPs from GLEIF
-            ├── parse.py             ← Streaming XML parser (iterparse, namespace auto-detect)
-            └── load.py              ← COPY full load + batched upsert for deltas
+├── backend/
+│   ├── pyproject.toml               ← Poetry deps (FastAPI, Polars, psycopg3, Alembic, httpx, tqdm)
+│   ├── alembic.ini
+│   ├── alembic/
+│   │   └── versions/0001_initial_schema.py
+│   └── app/
+│       ├── main.py                  ← FastAPI app, mounts routers + CORS
+│       ├── config.py                ← Settings loaded from .env
+│       ├── database.py              ← SQLAlchemy engine + SessionLocal
+│       ├── models.py                ← ORM: LeiRecord, Lou, PipelineWatermark
+│       ├── api/v1/
+│       │   ├── stats.py             ← /stats/summary, /stats/growth, /stats/jurisdictions
+│       │   ├── lous.py              ← /lous, /lous/{lei}
+│       │   └── search.py            ← /search, /search/lei/{lei} (+ GLEIF API enrichment)
+│       └── pipeline/
+│           ├── download.py          ← Downloads full + delta ZIPs from GLEIF
+│           ├── parse.py             ← Streaming XML parser (iterparse, namespace auto-detect)
+│           └── load.py              ← COPY full load + batched upsert for deltas
+└── frontend/
+    ├── next.config.ts               ← API rewrite proxy → localhost:8000
+    ├── package.json                 ← Next.js 16, Recharts, lucide-react, clsx, i18n-iso-countries
+    ├── app/
+    │   ├── layout.tsx               ← Root layout with Sidebar
+    │   ├── page.tsx                 ← Redirects / → /overview
+    │   ├── globals.css              ← Tailwind v4 @theme colours
+    │   ├── overview/page.tsx
+    │   ├── lous/page.tsx
+    │   ├── lous/[lei]/page.tsx
+    │   ├── search/page.tsx          ← Client component (live search)
+    │   ├── lei/[lei]/page.tsx
+    │   └── jurisdictions/page.tsx
+    ├── components/
+    │   ├── sidebar.tsx              ← Fixed sidebar with nav + active state
+    │   ├── stat-card.tsx            ← Reusable metric card
+    │   └── growth-chart.tsx         ← Recharts AreaChart (client component)
+    └── lib/
+        ├── api.ts                   ← fetch helpers for all backend endpoints
+        └── jurisdictions.ts         ← jurisdictionName() using i18n-iso-countries
 ```
 
 ---
@@ -148,38 +170,39 @@ LEIPal/
 - Verification endpoint: `GET /api/v1/stats/summary`
 - All committed to GitHub: https://github.com/janisbau/LEIPal
 
-### 🔜 Phase 2: Frontend Dashboard — NEXT
-Stack: Next.js (React) in `frontend/` directory
+### ✅ Phase 2: Frontend Dashboard — COMPLETE
+Stack: Next.js 16 in `frontend/` directory. Start with `npm run dev` from `frontend/`.
 
-**Design**: Dark terminal aesthetic (navy + teal accents), designed in Claude Design.
-Reference screenshots saved in project memory (4 screens: Home, Overview, LOU Explorer, LOU Detail).
+**Design**: Dark terminal aesthetic — navy (#0D1117) background, teal (#00D4AA) accent, card (#161B22), border (#21262D), muted (#8B949E). Tailwind v4 with `@theme` in globals.css (no tailwind.config.js).
 
-**Colour palette:**
-- Background: #0D1117 (dark navy)
-- Card: #161B22
-- Border: #21262D
-- Accent: #00D4AA (teal/green)
-- Text primary: #FFFFFF
-- Text muted: #8B949E
+**Pages built:**
+- `/overview` — stat cards (total LEIs, active, new this month, LOUs), cumulative growth chart, top jurisdictions by country
+- `/lous` — table of all 40 LOUs with active LEIs, market share bar, full country name
+- `/lous/[lei]` — LOU detail: stats, top jurisdictions, "View Entity →" link to LEI record
+- `/search` — live search (300ms debounce) by name or LEI, shows managing LOU name
+- `/lei/[lei]` — full LEI detail enriched from GLEIF public API (addresses, legal form, dates, managing LOU)
+- `/jurisdictions` — top 30 active jurisdictions with distribution bars, full country names
 
-**Build order:**
-1. ✅ → Next.js setup + shared layout (sidebar, nav, dark theme)
-2. ✅ → Overview dashboard (stat cards + top jurisdictions — growth chart placeholder)
-3. ✅ → Company Search + LEI detail page
-4. ✅ → LOU Explorer (active LEIs + market share — pricing/DQ placeholders)
+**API endpoints:**
+- `GET /api/v1/stats/summary` — totals, by_status, top_jurisdictions (grouped by country), lous_count
+- `GET /api/v1/stats/growth` — monthly cumulative from initial_registration_date
+- `GET /api/v1/stats/jurisdictions` — top 30 active, grouped by country, with share %
+- `GET /api/v1/lous` — all LOUs with active/total/inactive counts + market_share
+- `GET /api/v1/lous/{lei}` — single LOU detail + top_jurisdictions breakdown
+- `GET /api/v1/search?q=` — name/LEI search with managing LOU name joined
+- `GET /api/v1/search/lei/{lei}` — full record from DB + enriched from GLEIF API
 
-**API endpoints needed:**
-- `GET /api/v1/lous` — all LOUs with active LEI count + market share % (buildable now)
-- `GET /api/v1/lous/{lei}` — single LOU detail (buildable now)
-- `GET /api/v1/stats/jurisdictions` — full jurisdiction breakdown (buildable now)
-- `GET /api/v1/search?q=` — search lei_records by name or LEI code (buildable now)
-- `GET /api/v1/lei/{lei}` — single LEI record detail (buildable now)
-- `GET /api/v1/stats/growth` — LEI counts over time ❌ needs historical snapshots (future)
+**Key implementation notes:**
+- `lib/jurisdictions.ts` — `jurisdictionName()` using `i18n-iso-countries` + US/CA/AU subdivision map
+- Jurisdictions grouped by country: `SPLIT_PART(jurisdiction, '-', 1)` in SQL (US-DE + US-NY → US)
+- LEI detail enrichment: backend calls `https://api.gleif.org/api/v1/lei-records/{lei}`, falls back to DB if API unavailable
+- Managing LOU LEI uses GLEIF API value (more reliable than our DB field)
+- `next.config.ts` rewrites `/api/*` → `http://localhost:8000/api/*` for browser requests; server components use `http://localhost:8000` directly via `NEXT_PUBLIC_API_URL`
 
 **LOU Explorer data availability:**
 | Column | Status |
 |---|---|
-| Active LEIs, Market share | ✅ Buildable now |
+| Active LEIs, Market share | ✅ Live |
 | MoM / YoY growth | ❌ Need historical snapshots |
 | Issue/Renewal pricing | ❌ Need to scrape LOU websites |
 | DQ score | ❌ GLEIF publishes separately |
@@ -208,18 +231,21 @@ Reference screenshots saved in project memory (4 screens: Home, Overview, LOU Ex
 cd C:\Users\jbauv\LEIPal
 docker-compose up -d
 
-# 2. Start the API (in a separate terminal)
+# 2. Start the API (Terminal 1)
 cd C:\Users\jbauv\LEIPal\backend
 poetry run uvicorn app.main:app --reload
 
-# 3. Verify data is there
-# Open: http://localhost:8000/api/v1/stats/summary
-# Should show 3.16M LEIs, 40 LOUs
+# 3. Start the frontend (Terminal 2)
+cd C:\Users\jbauv\LEIPal\frontend
+npm run dev
 
-# 4. Apply weekly delta update (run once a week or so)
+# 4. Open the app
+# Frontend: http://localhost:3000
+# API docs:  http://localhost:8000/docs
+# pgAdmin:   http://localhost:5050  (admin@leipal.local / admin)
+
+# 5. Apply weekly delta update (run once a week or so)
+cd C:\Users\jbauv\LEIPal\backend
 poetry run python -m app.pipeline.download --mode delta
 poetry run python -m app.pipeline.load --mode delta --file .\data\deltas\<filename>.zip
 ```
-
-**pgAdmin** (DB browser): http://localhost:5050 — login: `admin@leipal.local` / `admin`
-**FastAPI docs**: http://localhost:8000/docs
